@@ -11,11 +11,15 @@ fn print_banner() {
     ╚═╝  ╚═╝ ╚═════╝ ╚══════╝   ╚═╝       ╚═╝      ╚═════╝ ╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝
     "#;
     println!("{}", banner.bright_red().bold());
-    println!("{}", "                        Web Directory Fuzzer v0.1.0".bright_cyan());
+    println!(
+        "{}",
+        "                        Web Directory Fuzzer v0.1.0".bright_cyan()
+    );
     println!();
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     print_banner();
 
     let args = std::env::args().collect::<Vec<String>>();
@@ -48,9 +52,7 @@ fn main() {
     println!("{} {}", "URL:".bright_blue().bold(), url.white());
     println!("{} {}", "Wordlist:".bright_blue().bold(), wordlist.white());
 
-    let fuzzer = Fuzzer::new(url, wordlist);
+    let fuzzer = Fuzzer::new(url, wordlist.into()).unwrap();
 
-    //run fuzzer
-    let runtime = tokio::runtime::Runtime::new().unwrap();
-    runtime.block_on(fuzzer.run_default());
+    fuzzer.run_default().await;
 }

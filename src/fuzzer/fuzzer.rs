@@ -1,24 +1,27 @@
+use anyhow::anyhow;
 use colored::Colorize;
 use reqwest;
-use std::fs;
+use std::{fs, path::PathBuf};
+
+use crate::wordlist::{self, Wordlist};
 
 pub struct Fuzzer {
     pub url: String,
-    pub wordlist_path: String,
+    pub wordlist: Wordlist,
+    client: reqwest::Client,
 }
 
 impl Fuzzer {
-    pub fn new(url: &str, wordlist_path: &str) -> Self {
-        Self {
+    pub fn new(url: &str, wordlist_path: PathBuf) -> anyhow::Result<Self> {
+        Ok(Self {
             url: url.to_string(),
-            wordlist_path: wordlist_path.to_string(),
-        }
+            wordlist: Wordlist::new(wordlist_path)?,
+            client: reqwest::Client::new(),
+        })
     }
 
-    async fn check_host(&self) -> Result<(), String> {
-        let client = reqwest::Client::new();
-
-        match client.get(&self.url).send().await {
+    async fn check_host(&self) -> anyhow::Result<()> {
+        match self.client.get(&self.url).send().await {
             Ok(response) => {
                 println!(
                     "{} Host is reachable (Status: {})",
@@ -27,11 +30,11 @@ impl Fuzzer {
                 );
                 Ok(())
             }
-            Err(e) => Err(format!(
+            Err(e) => Err(anyhow!(format!(
                 "{} Host is not reachable: {}",
                 "[-]".red().bold(),
                 e
-            )),
+            ))),
         }
     }
 
@@ -39,6 +42,10 @@ impl Fuzzer {
         if let Err(e) = self.check_host().await {
             eprintln!("{}", e);
             return;
+        }
+
+        for entry in &self.wordlist.entries {
+            println!("{}/{}", self.url, entry);
         }
     }
 }
